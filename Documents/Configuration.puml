@@ -1,0 +1,23 @@
+@startuml
+
+!include styles.puml
+!include utils.puml
+!include Dialog.puml
+!include Table.puml
+!include Tree.puml
+!include API.puml
+
+legend
+    ** API array structure**
+    ----
+    print(ConfigurationTreeView)
+    ----
+    <b>ERM (Sqlite)
+    print(ConfigurationTableView)
+    ----
+    <b>Edit-Dialog
+    print(ConfigurationDialogView)
+end legend
+
+
+@enduml
