@@ -1,0 +1,12 @@
+{
+    "name": "mapbender/configurator",
+    "description": "Mapbender configuration module",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Andriy Oblivantsev",
+            "email": "eslider@gmail.com"
+        }
+    ],
+    "require": {}
+}
