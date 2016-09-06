@@ -1,12 +1,33 @@
 {
-    "name": "mapbender/configurator",
-    "description": "Mapbender configuration module",
-    "license": "MIT",
-    "authors": [
-        {
-            "name": "Andriy Oblivantsev",
-            "email": "eslider@gmail.com"
-        }
-    ],
-    "require": {}
+  "name": "mapbender/configurator",
+  "description": "Mapbender configuration module",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Andriy Oblivantsev",
+      "email": "eslider@gmail.com"
+    }
+  ],
+  "minimum-stability": "dev",
+  "require-dev": {
+    "phpunit/phpunit": "^4.8",
+    "predis/predis": "~1.0",
+    "satooshi/php-coveralls": "~0.6"
+  },
+  "require": {
+    "symfony/dependency-injection": ">=2.3",
+    "symfony/options-resolver": "^3.1",
+
+    "mapbender/search": "dev-master",
+    "wheregroup/wfs-driver": "dev-master"
+  },
+  "config": {
+    "bin-dir": "bin"
+  },
+  "autoload": {
+    "psr-0": {
+      "Mapbender\\ConfiguratorBundle": "."
+    }
+  },
+  "target-dir": "Mapbender/ConfiguratorBundle"
 }
