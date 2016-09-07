@@ -10,8 +10,10 @@ use Symfony\Component\DependencyInjection\Container;
  */
 class ConfiguratorTest extends \PHPUnit_Framework_TestCase
 {
-    /** @var  Configurator */
+    /** @var Configurator */
     protected $configurator;
+    /** @var Configuration */
+    protected static $configuration;
 
     public function setUp()
     {
@@ -33,13 +35,21 @@ class ConfiguratorTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue(count($tableInfo) > 1);
     }
 
+    /**
+     * Test save configuration
+     */
     public function testSaveConfiguration()
     {
         $configurator  = $this->configurator;
         $configuration = new Configuration(array(
             'parentId' => null,
             'key'      => 'application',
-            'type'     => 'Mapbender\ConfiguratorBundle\Component\Configurator',
+            'value'    => array(
+                'roles' => array(
+                    'read'  => array('test1', 'test2'),
+                    'write' => array('test1', 'test2'),
+                ),
+            ),
             'children' => array(
                 array(
                     'key'   => 'title',
@@ -69,11 +79,44 @@ class ConfiguratorTest extends \PHPUnit_Framework_TestCase
                                     'value' => '200px'
                                 )
                             )
+                        ),
+                        array(
+                            'key'      => 'element',
+                            'type'     => 'MapbenderCoreBundle/Digitizer',
+                            'children' => array(
+                                array(
+                                    'key'   => 'container',
+                                    'value' => 'Content'
+                                ),
+                                array(
+                                    'key'   => 'width',
+                                    'value' => 'auto'
+                                ),
+                                array(
+                                    'key'   => 'height',
+                                    'value' => '200px'
+                                )
+                            )
                         )
                     )
                 )
             )
         ));
         $configurator->save($configuration);
+        self::$configuration = $configuration;
+    }
+
+    /**
+     * Test retrieve configuration
+     */
+    public function testGetConfiguration()
+    {
+        $configurator  = $this->configurator;
+        $configuration = self::$configuration;
+        $id            = $configuration->getId();
+        $restored      = $configurator->getById($id);
+
+        $this->assertEquals($id, $restored->getId());
+        $this->assertEquals(count($restored->getChildren()), count($configuration->getChildren()));
     }
 }

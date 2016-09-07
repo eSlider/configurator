@@ -37,42 +37,70 @@ class Configurator extends BaseComponent
     }
 
     /**
-     * @param        $id
+     * Get database connection handler
+     *
+     * @return SqliteExtended db Database connection handler
+     */
+    public function db()
+    {
+        return $this->db;
+    }
+
+    /**
+     * Get configuration by id
+     *
+     * @param        $id       Configuration id
+     * @param bool   $children Get children flag
      * @param string $scope
      * @return Configuration
      */
-    public function getById($id, $scope = 'global')
+    public function getById($id, $children = true, $scope = null)
     {
-        return new Configuration();
+        $db     = $this->db();
+        $row    = $db->fetchRow("SELECT * FROM config WHERE id=" . intval($id));
+        $config = new Configuration($row);
+        if ($config->isArray()) {
+            $config->setValue(json_decode($config->getValue(), true));
+        }
+        if ($children) {
+            $children1 = $this->getChildren($id, $children, $scope);
+            $config->setChildren($children1);
+        }
+        return $config;
     }
 
     /**
      * Get by configuration filter
      *
      * @param Configuration $filter
-     * @return Configuration[]
+     * @param bool          $children
+     * @param null          $scope
+     * @return Configuration
+     */
+    public function get(Configuration $filter, $children = true, $scope = null)
+    {
+        return $this->getById($filter->getId(), $children, $scope);
+    }
+
+    /**
+     * Get children
      *
+     * @param      $id int
+     * @param bool $children
+     * @param null $scope
+     * @return Configuration[]
      */
-    public function get(Configuration $filter)
+    public function getChildren($id, $children = true, $scope = null)
     {
-        return array($filter);
+        $db       = $this->db();
+        $children = array();
+        foreach ($db->queryAndFetch("SELECT id FROM config WHERE parentId=" . intval($id)) as $row) {
+            $children[] = $this->getById($row["id"], $children, $scope);
+        }
+        return $children;
     }
 
-    /**
-     * @param $id int
-     */
-    public function getChildren($id)
-    {
 
-    }
-
-    /**
-     * @return SqliteExtended db
-     */
-    public function db()
-    {
-        return $this->db;
-    }
 
     /**
      * Create database4 file
@@ -119,6 +147,10 @@ class Configurator extends BaseComponent
         $data                = $configuration->toArray();
         $data["creationDate"] = time();
 
+        if ($configuration->isArray() || $configuration->isObject()) {
+            $data["value"] = json_encode($data["value"]);
+        }
+
         unset($data["children"]);
 
         if ($configuration->hasId()) {
@@ -136,6 +168,13 @@ class Configurator extends BaseComponent
         }
 
         return $configuration;
+    }
+
+    /**
+     * @param $data
+     */
+    public function saveData($data){
+
     }
 
     /**
