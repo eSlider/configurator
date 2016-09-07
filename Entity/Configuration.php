@@ -1,7 +1,6 @@
 <?php
 namespace Mapbender\ConfiguratorBundle\Entity;
 
-use Wheregroup\XML\Entity\BaseEntity;
 
 /**
  * Base configuration entity
@@ -10,6 +9,15 @@ use Wheregroup\XML\Entity\BaseEntity;
  */
 class Configuration extends BaseEntity
 {
+    /** @var string String type */
+    const TYPE_ARRAY  = "array";
+
+    /** @var string Array type */
+    const TYPE_OBJECT = "object";
+
+    /** @var string Array type */
+    const TYPE_STRING = "string";
+
     /** @var  int ID */
     protected $id;
 
@@ -119,19 +127,23 @@ class Configuration extends BaseEntity
     }
 
     /**
+     * Set children
+     *
      * @param Configuration[] $children
+     * @return $this
      */
-    public function setChildren($children)
+    public function setChildren(array $children)
     {
         $_children = array();
         foreach ($children as $child) {
             if (is_array($child)) {
                 $_children[] = new Configuration($child);
-            } elseif (is_object($children) && $child instanceof Configuration) {
+            } elseif (is_object($child) && $child instanceof Configuration) {
                 $_children[] = $child;
             }
         }
         $this->children = $_children;
+        return $this;
     }
 
     /**
@@ -185,7 +197,23 @@ class Configuration extends BaseEntity
      */
     public function getType()
     {
-        return $this->type;
+        $type = $this->type;
+
+        if (!$type) {
+
+            $value = $this->getValue();
+
+            if($value === null){
+                $type = null;
+            }elseif (is_object($value)) {
+                $type = get_class($value);
+            } else {
+                $type = gettype($value);
+            }
+            $this->type = $type;
+        }
+
+        return $type;
     }
 
     /**
@@ -207,6 +235,7 @@ class Configuration extends BaseEntity
             }
             $vars["children"] = $children;
         }
+        $vars["type"] = $this->getType();
 
         return $vars;
     }
@@ -217,5 +246,58 @@ class Configuration extends BaseEntity
     public function hasChildren()
     {
         return count($this->getChildren()) > 0;
+    }
+
+    /**
+     * @return string
+     */
+    public function getKey()
+    {
+        return $this->key;
+    }
+
+    /**
+     * @param string $key
+     * @return $this
+     */
+    public function setKey($key)
+    {
+        $this->key = $key;
+        return $this;
+    }
+
+    /**
+     * @param mixed $value
+     * @return Configuration
+     */
+    public function setValue($value)
+    {
+        $this->value = $value;
+        return $this;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getValue()
+    {
+        return $this->value;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isArray()
+    {
+        return $this->getType() == static::TYPE_ARRAY;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isObject()
+    {
+        $type = $this->getType();
+        return $type == static::TYPE_OBJECT || strpos($type, "/");
     }
 }
