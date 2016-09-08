@@ -13,6 +13,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  */
 class Configurator extends BaseComponent
 {
+    const NULL_BYTE = "\1NULL\1";
+
     /** @var string Configuration table name */
     protected $tableName = "config";
 
@@ -57,11 +59,18 @@ class Configurator extends BaseComponent
     public function getById($id, $children = true, $scope = null)
     {
         $db     = $this->db();
-        $row    = $db->fetchRow("SELECT * FROM config WHERE id=" . intval($id));
+        $row    = $db->fetchRow("
+          SELECT * 
+          FROM config 
+          WHERE id=" . intval($id) . " 
+          GROUP BY key
+          ORDER BY creationDate DESC");
         $config = new Configuration($row);
-        if ($config->isArray()) {
-            $config->setValue(json_decode($config->getValue(), true));
+
+        if ($config->isArray() || $config->isObject()) {
+            $config->setValue($this->decodeValue($config->getValue()));
         }
+
         if ($children) {
             $children1 = $this->getChildren($id, $children, $scope);
             $config->setChildren($children1);
@@ -94,7 +103,13 @@ class Configurator extends BaseComponent
     {
         $db       = $this->db();
         $children = array();
-        foreach ($db->queryAndFetch("SELECT id FROM config WHERE parentId=" . intval($id)) as $row) {
+        foreach ($db->queryAndFetch("
+            SELECT id 
+            FROM config 
+            WHERE parentId=" . intval($id)."
+            GROUP BY key
+            ORDER BY creationDate DESC
+            ") as $row) {
             $children[] = $this->getById($row["id"], $children, $scope);
         }
         return $children;
@@ -138,17 +153,23 @@ class Configurator extends BaseComponent
      * Save configuration
      *
      * @param Configuration $configuration
+     * @param null          $time
      * @return Configuration
      */
-    public function save(Configuration $configuration = null)
+    public function save(Configuration $configuration = null, $time = null)
     {
         $db                  = $this->db();
         $tableName           = $this->getTableName();
         $data                = $configuration->toArray();
-        $data["creationDate"] = time();
+
+        if (!$time) {
+            $time = time();
+        }
+
+        $data["creationDate"] = $time;
 
         if ($configuration->isArray() || $configuration->isObject()) {
-            $data["value"] = json_encode($data["value"]);
+            $data["value"] = $this->encodeValue($data["value"]);
         }
 
         unset($data["children"]);
@@ -156,14 +177,19 @@ class Configurator extends BaseComponent
         if ($configuration->hasId()) {
             $db->update($tableName, $data, $configuration->getId());
         } else {
-            $id = $db->insert($tableName, $data);
-            $configuration->setId($id);
+            try{
+                $id = $db->insert($tableName, $data);
+                $configuration->setId($id);
+            } catch (\Exception $e){
+                var_dump($e);
+            }
+
         }
 
         if ($configuration->hasChildren()) {
             foreach ($configuration->getChildren() as $child) {
                 $child->setParentId($configuration->getId());
-                $this->save($child);
+                $this->save($child, $time);
             }
         }
 
@@ -205,5 +231,23 @@ class Configurator extends BaseComponent
             'creationDate',
             'userId'
         );
+    }
+
+    /**
+     * @param $value
+     * @return string
+     */
+    protected function encodeValue($value)
+    {
+        return str_replace("\0", self::NULL_BYTE, serialize($value));
+    }
+
+    /**
+     * @param $value
+     * @return mixed
+     */
+    protected function decodeValue($value)
+    {
+        return unserialize(str_replace(self::NULL_BYTE, "\0", $value));
     }
 }

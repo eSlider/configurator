@@ -1,6 +1,7 @@
 <?php
 namespace Mapbender\ConfiguratorBundle\Test;
 
+use Mapbender\ConfiguratorBundle\Component\BaseComponent;
 use Mapbender\ConfiguratorBundle\Component\Configurator;
 use Mapbender\ConfiguratorBundle\Entity\Configuration;
 use Symfony\Component\DependencyInjection\Container;
@@ -58,6 +59,10 @@ class ConfiguratorTest extends \PHPUnit_Framework_TestCase
                 array(
                     'key'   => 'description',
                     'value' => 'Test application'
+                ),
+                array(
+                    'key'   => 'component',
+                    'value' => new BaseComponent()
                 ),
                 array(
                     'key'      => 'elements',
