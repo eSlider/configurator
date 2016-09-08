@@ -298,6 +298,6 @@ class Configuration extends BaseEntity
     public function isObject()
     {
         $type = $this->getType();
-        return $type == static::TYPE_OBJECT || strpos($type, "/");
+        return $type == static::TYPE_OBJECT || strpos($type, "\\");
     }
 }
