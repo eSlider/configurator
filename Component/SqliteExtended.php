@@ -94,9 +94,9 @@ class SqliteExtended extends \SQLite3
     {
         $r = null;
         if (is_string($value)) {
-            $r = self::VALUE_ESC_CHAR . $value . self::VALUE_ESC_CHAR;
+            $r = self::VALUE_ESC_CHAR . static::escapeString($value) . self::VALUE_ESC_CHAR;
         } elseif (is_null($value)) {
-            $r = self::NULL;
+            $r = static::NULL;
         } elseif (is_bool($value)) {
             $r = $value ? 1 : 0;
         } else {
@@ -141,7 +141,7 @@ class SqliteExtended extends \SQLite3
      */
     public function quote($name)
     {
-        return self::NAME_ESC_CHAR . $name . self::NAME_ESC_CHAR;
+        return static::NAME_ESC_CHAR . $name . static::NAME_ESC_CHAR;
     }
 
     /**
@@ -293,14 +293,14 @@ class SqliteExtended extends \SQLite3
         $keys   = array();
 
         foreach ($data as $key => $value) {
-            $values[] = $this->quote($key) . "=" . self::escapeValue($value);
+            $values[] = $this->quote($key) . "=" . static::escapeValue($value);
         }
 
         return $this->query('UPDATE '
             . $this->quote($tableName)
             . 'SET  ('
-            . implode(', ', $values)
-            . ') WHERE ' . $this->quote($idColumn) . "=" . self::escapeValue($idValue));
+            . implode(' , ', $values)
+            . ') WHERE ' . $this->quote($idColumn) . "=" . static::escapeValue($idValue));
     }
 
 
@@ -324,7 +324,7 @@ class SqliteExtended extends \SQLite3
             if ($value === null) {
                 continue;
             }
-            $values[] = self::escapeValue($value);
+            $values[] = static::escapeValue($value);
             $keys[]   = $this->quote($key);
         }
 
