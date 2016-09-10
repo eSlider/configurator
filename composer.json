@@ -16,13 +16,16 @@
   },
   "require": {
     "symfony/dependency-injection": ">=2.3",
-    "symfony/options-resolver": "^3.1",
-
+    "symfony/options-resolver": "*",
     "mapbender/search": "dev-master",
-    "wheregroup/wfs-driver": "dev-master"
+    "wheregroup/wfs-driver": "dev-master",
+    "zumba/json-serializer": "*"
   },
   "config": {
-    "bin-dir": "bin"
+    "bin-dir": "bin",
+    "platform": {
+      "php": "5.3.17"
+    }
   },
   "autoload": {
     "psr-0": {
