@@ -1,9 +1,8 @@
 <?php
 namespace Mapbender\ConfiguratorBundle\Test;
 
-use Mapbender\ConfiguratorBundle\Component\BaseComponent;
 use Mapbender\ConfiguratorBundle\Component\Configurator;
-use Mapbender\ConfiguratorBundle\Entity\Configuration;
+use Mapbender\ConfiguratorBundle\Entity\DataItem;
 use Symfony\Component\DependencyInjection\Container;
 
 /**
@@ -13,8 +12,9 @@ class ConfiguratorTest extends \PHPUnit_Framework_TestCase
 {
     /** @var Configurator */
     protected $configurator;
-    /** @var Configuration */
-    protected static $configuration;
+
+    /** @var DataItem */
+    protected static $dataItem;
 
     public function setUp()
     {
@@ -42,7 +42,7 @@ class ConfiguratorTest extends \PHPUnit_Framework_TestCase
     public function testSaveConfiguration()
     {
         $configurator  = $this->configurator;
-        $configuration = new Configuration(array(
+        $configuration = new DataItem(array(
             'parentId' => null,
             'key'      => 'application',
             'value'    => array(
@@ -62,7 +62,7 @@ class ConfiguratorTest extends \PHPUnit_Framework_TestCase
                 ),
                 array(
                     'key'   => 'component',
-                    'value' => new BaseComponent()
+                    'value' => $this->configurator
                 ),
                 array(
                     'key'      => 'elements',
@@ -108,7 +108,7 @@ class ConfiguratorTest extends \PHPUnit_Framework_TestCase
             )
         ));
         $configurator->save($configuration);
-        self::$configuration = $configuration;
+        self::$dataItem = $configuration;
     }
 
     /**
@@ -117,11 +117,28 @@ class ConfiguratorTest extends \PHPUnit_Framework_TestCase
     public function testGetConfiguration()
     {
         $configurator  = $this->configurator;
-        $configuration = self::$configuration;
+        $configuration = self::$dataItem;
         $id            = $configuration->getId();
         $restored      = $configurator->getById($id);
-
         $this->assertEquals($id, $restored->getId());
         $this->assertEquals(count($restored->getChildren()), count($configuration->getChildren()));
+    }
+
+    public function testSaveArray()
+    {
+        $configurator = $this->configurator;
+        $dataItem     = $configurator->saveData('testSaveArray',
+            array('test'      => 'xxx',
+                  'someThing' => array(
+                      'roles' => array(
+                          'xxx',
+                          'ddd'
+                      )
+                  )
+            )
+        );
+        $dataItem->getId();
+        $data = $configurator->restoreData('testSaveArray');
+        var_dump($data);
     }
 }

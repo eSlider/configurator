@@ -2,8 +2,10 @@
 
 namespace Mapbender\ConfiguratorBundle\Component;
 
-use Mapbender\ConfiguratorBundle\Entity\Configuration;
+use Mapbender\ConfiguratorBundle\Entity\DataItem;
+use Mapbender\ConfiguratorBundle\Entity\DataItemSearchFilter;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Zumba\Util\JsonSerializer;
 
 /**
  * Class Configurator
@@ -15,7 +17,11 @@ class Configurator extends BaseComponent
 {
     const NULL_BYTE = "\1NULL\1";
 
-    /** @var string Configuration table name */
+    /** ID field name */
+    const ID_FIELD        = 'id';
+    const PARENT_ID_FIELD = 'parentId';
+
+    /** @var string DataItem table name */
     protected $tableName = "config";
 
     /** @var SqliteExtended SQLite driver connection */
@@ -51,67 +57,71 @@ class Configurator extends BaseComponent
     /**
      * Get configuration by id
      *
-     * @param        $id       Configuration id
-     * @param bool   $children Get children flag
+     * @param int    $id            DataItem id
+     * @param bool   $fetchChildren Get children flag
      * @param string $scope
-     * @return Configuration
+     * @return DataItem
      */
-    public function getById($id, $children = true, $scope = null)
+    public function getById($id, $fetchChildren = true, $scope = null)
     {
-        $db     = $this->db();
-        $row    = $db->fetchRow("
-          SELECT * 
-          FROM config 
-          WHERE id=" . intval($id) . " 
-          GROUP BY key
-          ORDER BY creationDate DESC");
-        $config = new Configuration($row);
+        $filter = new DataItemSearchFilter();
+        $filter->setId($id);
+        $filter->setScope($scope);
 
-        if ($config->isArray() || $config->isObject()) {
-            $config->setValue($this->decodeValue($config->getValue()));
+        if ($fetchChildren) {
+            $filter->setFetchMethod(DataItemSearchFilter::FETCH_ONE_AND_CHILDREN);
+        } else {
+            $filter->setFetchMethod(DataItemSearchFilter::FETCH_ONE_WITHOUT_CHILDREN);
         }
 
-        if ($children) {
-            $children1 = $this->getChildren($id, $children, $scope);
-            $config->setChildren($children1);
-        }
-        return $config;
+        return $this->get($filter);
     }
 
     /**
      * Get by configuration filter
      *
-     * @param Configuration $filter
-     * @param bool          $children
-     * @param null          $scope
-     * @return Configuration
+     * @param DataItem|DataItemSearchFilter $filter
+     * @return DataItem
      */
-    public function get(Configuration $filter, $children = true, $scope = null)
+    public function get(DataItemSearchFilter $filter)
     {
-        return $this->getById($filter->getId(), $children, $scope);
+        $db       = $this->db();
+        $query    = $this->createQuery($filter);
+        $dataItem = new DataItem($db->fetchRow($query));
+
+        if ($dataItem->isArray() || $dataItem->isObject()) {
+            $dataItem->setValue($this->decodeValue($dataItem->getValue()));
+        }
+
+        if ($filter->shouldFetchChildren()) {
+            $children = $this->getChildren($dataItem->getId(), true, $filter);
+            $dataItem->setChildren($children);
+        }
+
+        return $dataItem;
     }
 
     /**
      * Get children
      *
      * @param      $id int
-     * @param bool $children
+     * @param bool $fetchChildren
      * @param null $scope
-     * @return Configuration[]
+     * @return DataItem[]
      */
-    public function getChildren($id, $children = true, $scope = null)
+    public function getChildren($id, $fetchChildren = true, $scope = null)
     {
         $db       = $this->db();
         $children = array();
-        foreach ($db->queryAndFetch("
-            SELECT id 
-            FROM config 
-            WHERE parentId=" . intval($id)."
-            GROUP BY key
-            ORDER BY creationDate DESC
-            ") as $row) {
-            $children[] = $this->getById($row["id"], $children, $scope);
+        $filter   = new DataItemSearchFilter();
+
+        $filter->setParentId($id);
+        $filter->setFields(array(self::ID_FIELD));
+
+        foreach ($db->queryAndFetch($this->createQuery($filter)) as $row) {
+            $children[] = $this->getById($row[ self::ID_FIELD ], $fetchChildren, $scope);
         }
+
         return $children;
     }
 
@@ -152,15 +162,15 @@ class Configurator extends BaseComponent
     /**
      * Save configuration
      *
-     * @param Configuration $configuration
-     * @param null          $time
-     * @return Configuration
+     * @param DataItem $dataItem
+     * @param null     $time
+     * @return DataItem
      */
-    public function save(Configuration $configuration = null, $time = null)
+    public function save(DataItem $dataItem = null, $time = null)
     {
         $db                  = $this->db();
         $tableName           = $this->getTableName();
-        $data                = $configuration->toArray();
+        $data                = $dataItem->toArray();
 
         if (!$time) {
             $time = time();
@@ -168,39 +178,82 @@ class Configurator extends BaseComponent
 
         $data["creationDate"] = $time;
 
-        if ($configuration->isArray() || $configuration->isObject()) {
+        if ($dataItem->isArray() || $dataItem->isObject()) {
             $data["value"] = $this->encodeValue($data["value"]);
         }
 
         unset($data["children"]);
 
-        if ($configuration->hasId()) {
-            $db->update($tableName, $data, $configuration->getId());
+        if ($dataItem->hasId()) {
+            $db->update($tableName, $data, $dataItem->getId());
         } else {
             try{
                 $id = $db->insert($tableName, $data);
-                $configuration->setId($id);
+                $dataItem->setId($id);
             } catch (\Exception $e){
                 var_dump($e);
             }
 
         }
 
-        if ($configuration->hasChildren()) {
-            foreach ($configuration->getChildren() as $child) {
-                $child->setParentId($configuration->getId());
+        if ($dataItem->hasChildren()) {
+            foreach ($dataItem->getChildren() as $child) {
+                $child->setParentId($dataItem->getId());
                 $this->save($child, $time);
             }
         }
 
-        return $configuration;
+        return $dataItem;
     }
 
     /**
-     * @param $data
+     * @param      $key
+     * @param      $value
+     * @param null $parentId
+     * @param null $scope
+     * @internal param $data
+     * @return DataItem
      */
-    public function saveData($data){
+    public function saveData($key, $value, $scope = null, $parentId = null)
+    {
+        $dataItem = new DataItem();
+        $isArray  = is_array($value);
+        $dataItem->setKey($key);
+        $dataItem->setParentId($parentId);
+        $dataItem->setScope($scope);
 
+        if (!$isArray) {
+            $dataItem->setValue($value);
+        }
+
+        $this->save($dataItem);
+
+        if ($isArray) {
+            $childParentId = $dataItem->getId();
+            $children      = array();
+            foreach ($value as $subKey => $item) {
+                $children[] = $this->saveData($subKey, $item, $scope, $childParentId);
+            }
+            $dataItem->setChildren($children);
+        }
+
+        return $dataItem;
+    }
+
+    /**
+     * @param      $key
+     * @param null $scope
+     * @param null $parentId
+     * @param null $userId
+     */
+    public function restoreData($key, $scope = null, $parentId = null, $userId = null)
+    {
+        $filter = new DataItemSearchFilter();
+        $filter->setKey($key);
+        $filter->setParentId($parentId);
+        $filter->setScope($scope);
+        $filter->setUserId($userId);
+        $dataItem = $this->get($filter);
     }
 
     /**
@@ -210,7 +263,7 @@ class Configurator extends BaseComponent
      */
     protected function getFieldNames()
     {
-        //$configurationVars    = new \ReflectionClass('Mapbender\ConfiguratorBundle\Entity\Configuration');
+        //$configurationVars    = new \ReflectionClass('Mapbender\ConfiguratorBundle\Entity\DataItem');
         //$reflectionProperties = $configurationVars->getProperties();
         //$excludeFields        = array("id", "_data", "saveOriginalData", "children");
         //$fieldNames           = array();
@@ -239,7 +292,9 @@ class Configurator extends BaseComponent
      */
     protected function encodeValue($value)
     {
-        return str_replace("\0", self::NULL_BYTE, serialize($value));
+        $serializer = new JsonSerializer();
+        return $serializer->serialize($value);
+        //return str_replace("\0", self::NULL_BYTE, serialize($value));
     }
 
     /**
@@ -248,6 +303,50 @@ class Configurator extends BaseComponent
      */
     protected function decodeValue($value)
     {
-        return unserialize(str_replace(self::NULL_BYTE, "\0", $value));
+        $serializer = new JsonSerializer();
+        return $serializer->unserialize($value);
+        //return unserialize(str_replace(self::NULL_BYTE, "\0", $value));
+    }
+
+    /**
+     * @param DataItemSearchFilter $filter
+     * @return array
+     */
+    protected function createQuery(DataItemSearchFilter $filter)
+    {
+        $db     = $this->db();
+        $sql    = array();
+        $where  = array();
+        $fields = $filter->getFields();
+        $sql[]  = "SELECT " . ($fields ? implode(",", $fields) : '*');
+        $sql[]  = "FROM " . $db->quote($this->tableName);
+
+        if ($filter->hasId()) {
+            $where[] = static::ID_FIELD . "=" . intval($filter->getId());
+        }
+
+        if ($filter->getParentId()) {
+            $where[] = static::PARENT_ID_FIELD . "=" . intval($filter->getParentId());
+        }
+
+        if($filter->getScope()){
+            $where[] = "scope LIKE " . $db::escapeValue($filter->getScope());
+        }else{
+            $where[] = "scope IS NULL";
+        }
+
+        if ($filter->getType()) {
+            $where[] = "type LIKE " . $db::escapeValue($filter->getType());
+        }
+
+        $sql[] = "WHERE " . implode(" AND ", $where);
+        $sql[] = "GROUP BY " . $db->quote('key');
+        $sql[] = "ORDER BY creationDate DESC";
+
+        if ($filter->hasLimit()) {
+            $sql[] = "LIMIT " . $filter->getFetchLimit();
+        }
+
+        return implode(' ', $sql);
     }
 }
