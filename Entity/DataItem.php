@@ -7,7 +7,7 @@ namespace Mapbender\ConfiguratorBundle\Entity;
  *
  * @see Documents/API.puml
  */
-class Configuration extends BaseEntity
+class DataItem extends BaseEntity
 {
     /** @var string String type */
     const TYPE_ARRAY  = "array";
@@ -33,7 +33,7 @@ class Configuration extends BaseEntity
     /** @var mixed Value */
     protected $value;
 
-    /** @var Configuration[] */
+    /** @var DataItem[] */
     protected $children;
 
     /** @var string Scope name */
@@ -51,14 +51,14 @@ class Configuration extends BaseEntity
      * @param array $data
      * @param bool  $saveOriginalData Save testing friendly original data as array?.
      */
-    public function __construct(array $data = null, $saveOriginalData = false)
+    public function __construct(array $data = null)
     {
-        parent::__construct($data, $saveOriginalData);
+        parent::__construct($data);
     }
 
     /**
-     * @param mixed $id
-     * @return Configuration
+     * @param int|null $id
+     * @return DataItem
      */
     public function setId($id)
     {
@@ -67,7 +67,7 @@ class Configuration extends BaseEntity
     }
 
     /**
-     * @return int
+     * @return int|null
      */
     public function getId()
     {
@@ -83,8 +83,8 @@ class Configuration extends BaseEntity
     }
 
     /**
-     * @param int $parentId
-     * @return Configuration
+     * @param int|null $parentId
+     * @return DataItem
      */
     public function setParentId($parentId)
     {
@@ -93,7 +93,7 @@ class Configuration extends BaseEntity
     }
 
     /**
-     * @return int
+     * @return int|null
      */
     public function getParentId()
     {
@@ -101,8 +101,8 @@ class Configuration extends BaseEntity
     }
 
     /**
-     * @param string $scope
-     * @return Configuration
+     * @param string|null $scope
+     * @return DataItem
      */
     public function setScope($scope)
     {
@@ -111,7 +111,7 @@ class Configuration extends BaseEntity
     }
 
     /**
-     * @return string
+     * @return string|null
      */
     public function getScope()
     {
@@ -119,7 +119,7 @@ class Configuration extends BaseEntity
     }
 
     /**
-     * @return Configuration[]
+     * @return DataItem[]|null
      */
     public function getChildren()
     {
@@ -129,7 +129,7 @@ class Configuration extends BaseEntity
     /**
      * Set children
      *
-     * @param Configuration[] $children
+     * @param DataItem[] $children
      * @return $this
      */
     public function setChildren(array $children)
@@ -137,8 +137,8 @@ class Configuration extends BaseEntity
         $_children = array();
         foreach ($children as $child) {
             if (is_array($child)) {
-                $_children[] = new Configuration($child);
-            } elseif (is_object($child) && $child instanceof Configuration) {
+                $_children[] = new DataItem($child);
+            } elseif (is_object($child) && $child instanceof DataItem) {
                 $_children[] = $child;
             }
         }
@@ -148,7 +148,7 @@ class Configuration extends BaseEntity
 
     /**
      * @param mixed $userId
-     * @return Configuration
+     * @return DataItem
      */
     public function setUserId($userId)
     {
@@ -166,7 +166,7 @@ class Configuration extends BaseEntity
 
     /**
      * @param \DateTime $creationDate
-     * @return Configuration
+     * @return DataItem
      */
     public function setCreationDate($creationDate)
     {
@@ -184,7 +184,7 @@ class Configuration extends BaseEntity
 
     /**
      * @param string $type
-     * @return Configuration
+     * @return DataItem
      */
     public function setType($type)
     {
@@ -268,7 +268,7 @@ class Configuration extends BaseEntity
 
     /**
      * @param mixed $value
-     * @return Configuration
+     * @return DataItem
      */
     public function setValue($value)
     {
