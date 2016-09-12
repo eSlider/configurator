@@ -11,15 +11,12 @@
   "minimum-stability": "dev",
   "require-dev": {
     "phpunit/phpunit": "^4.8",
-    "predis/predis": "~1.0",
-    "satooshi/php-coveralls": "~0.6"
+    "eslider/spatialite": "*"
   },
   "require": {
     "symfony/dependency-injection": ">=2.3",
     "symfony/options-resolver": "*",
-    "mapbender/search": "dev-master",
-    "wheregroup/wfs-driver": "dev-master",
-    "zumba/json-serializer": "*"
+    "eslider/hkv-storage": "*"
   },
   "config": {
     "bin-dir": "bin",
