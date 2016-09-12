@@ -94,10 +94,9 @@ class Configurator extends BaseComponent
         }
 
         if ($filter->shouldFetchChildren()) {
-            $children = $this->getChildren($dataItem->getId(), true, $filter);
+            $children = $this->getChildren($dataItem->getId(), true, $filter->getScope());
             $dataItem->setChildren($children);
         }
-
         return $dataItem;
     }
 
@@ -221,6 +220,7 @@ class Configurator extends BaseComponent
         $dataItem->setKey($key);
         $dataItem->setParentId($parentId);
         $dataItem->setScope($scope);
+        $dataItem->setType(gettype($value));
 
         if (!$isArray) {
             $dataItem->setValue($value);
@@ -238,22 +238,6 @@ class Configurator extends BaseComponent
         }
 
         return $dataItem;
-    }
-
-    /**
-     * @param      $key
-     * @param null $scope
-     * @param null $parentId
-     * @param null $userId
-     */
-    public function restoreData($key, $scope = null, $parentId = null, $userId = null)
-    {
-        $filter = new DataItemSearchFilter();
-        $filter->setKey($key);
-        $filter->setParentId($parentId);
-        $filter->setScope($scope);
-        $filter->setUserId($userId);
-        $dataItem = $this->get($filter);
     }
 
     /**
@@ -284,6 +268,49 @@ class Configurator extends BaseComponent
             'creationDate',
             'userId'
         );
+    }
+
+    /**
+     * @param      $key
+     * @param null $scope
+     * @param null $parentId
+     * @param null $userId
+     * @return DataItem
+     */
+    public function restoreData($key, $scope = null, $parentId = null, $userId = null)
+    {
+        $filter = new DataItemSearchFilter();
+        $filter->setKey($key);
+        $filter->setParentId($parentId);
+        $filter->setScope($scope);
+        $filter->setUserId($userId);
+        $dataItem = $this->get($filter);
+
+        $data = $this->normalizeObject($dataItem);
+
+        return $data;
+    }
+
+    /**
+     * @param DataItem $dataItem
+     * @return null|array|mixed
+     */
+    public function normalizeObject(DataItem $dataItem)
+    {
+        $result = null;
+        if ($dataItem->getType() == 'array') {
+            $result = array();
+            foreach ($dataItem->getChildren() as $child) {
+                if ($child->getType() == 'array') {
+                    $result[ $child->getKey() ] = $this->normalizeObject($child);
+                } else {
+                    $result[ $child->getKey() ] = $child->getValue();
+                }
+            }
+        } else {
+            $result = $dataItem->getValue();
+        }
+        return $result;
     }
 
     /**
@@ -318,33 +345,36 @@ class Configurator extends BaseComponent
         $sql    = array();
         $where  = array();
         $fields = $filter->getFields();
-        $sql[]  = "SELECT " . ($fields ? implode(",", $fields) : '*');
-        $sql[]  = "FROM " . $db->quote($this->tableName);
+        $sql[]  = 'SELECT ' . ($fields ? implode(',', $fields) : '*');
+        $sql[]  = 'FROM ' . $db->quote($this->tableName);
 
         if ($filter->hasId()) {
-            $where[] = static::ID_FIELD . "=" . intval($filter->getId());
+            $where[] = static::ID_FIELD . '=' . intval($filter->getId());
+        }elseif ($filter->getKey()) {
+            $where[] = 'key LIKE ' . $db::escapeValue($filter->getKey());
         }
 
         if ($filter->getParentId()) {
-            $where[] = static::PARENT_ID_FIELD . "=" . intval($filter->getParentId());
+            $where[] = static::PARENT_ID_FIELD . '=' . intval($filter->getParentId());
         }
 
         if($filter->getScope()){
-            $where[] = "scope LIKE " . $db::escapeValue($filter->getScope());
+            $where[] = 'scope LIKE ' . $db::escapeValue($filter->getScope());
         }else{
-            $where[] = "scope IS NULL";
+            $where[] = 'scope IS NULL';
         }
 
         if ($filter->getType()) {
-            $where[] = "type LIKE " . $db::escapeValue($filter->getType());
+            $where[] = 'type LIKE ' . $db::escapeValue($filter->getType());
         }
 
-        $sql[] = "WHERE " . implode(" AND ", $where);
-        $sql[] = "GROUP BY " . $db->quote('key');
-        $sql[] = "ORDER BY creationDate DESC";
+
+        $sql[] = 'WHERE ' . implode(' AND ', $where);
+        $sql[] = 'GROUP BY ' . $db->quote('key');
+        $sql[] = 'ORDER BY creationDate DESC';
 
         if ($filter->hasLimit()) {
-            $sql[] = "LIMIT " . $filter->getFetchLimit();
+            $sql[] = 'LIMIT ' . $filter->getFetchLimit();
         }
 
         return implode(' ', $sql);
