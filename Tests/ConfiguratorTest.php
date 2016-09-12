@@ -46,6 +46,7 @@ class ConfiguratorTest extends \PHPUnit_Framework_TestCase
             'parentId' => null,
             'key'      => 'application',
             'value'    => array(
+                'obj' => $this->configurator,
                 'roles' => array(
                     'read'  => array('test1', 'test2'),
                     'write' => array('test1', 'test2'),
@@ -126,19 +127,20 @@ class ConfiguratorTest extends \PHPUnit_Framework_TestCase
 
     public function testSaveArray()
     {
-        $configurator = $this->configurator;
-        $dataItem     = $configurator->saveData('testSaveArray',
-            array('test'      => 'xxx',
-                  'someThing' => array(
-                      'roles' => array(
-                          'xxx',
-                          'ddd'
-                      )
-                  )
-            )
+        $configurator  = $this->configurator;
+        $testKey       = 'testSaveArray';
+        $testArray     = array('test'         => 'xxx',
+                               'configuRATor' => $configurator,
+                               'someThing'    => array(
+                                   'roles' => array(
+                                       'xxx',
+                                       'ddd'
+                                   )
+                               )
         );
-        $dataItem->getId();
-        $data = $configurator->restoreData('testSaveArray');
-        var_dump($data);
+        $dataItem      = $configurator->saveData($testKey, $testArray);
+        $restoredArray = $configurator->restoreData($testKey);
+        $this->assertEquals($testArray, $restoredArray);
+        $this->assertTrue($dataItem->hasId());
     }
 }
