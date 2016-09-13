@@ -1,8 +1,9 @@
 <?php
 namespace Mapbender\ConfiguratorBundle\Test;
 
+use Eslider\Driver\SqliteExtended;
+use Eslider\Entity\HKV;
 use Mapbender\ConfiguratorBundle\Component\Configurator;
-use Mapbender\ConfiguratorBundle\Entity\DataItem;
 use Symfony\Component\DependencyInjection\Container;
 
 /**
@@ -10,43 +11,24 @@ use Symfony\Component\DependencyInjection\Container;
  */
 class ConfiguratorTest extends \PHPUnit_Framework_TestCase
 {
+    protected $testAppConfiguration;
+
     /** @var Configurator */
     protected $configurator;
 
-    /** @var DataItem */
+    /** @var HKV */
     protected static $dataItem;
 
     public function setUp()
     {
         $container = new Container();
         $container->setParameter("testing", true);
-        $this->configurator = new Configurator($container);
-        parent::setUp();
-    }
-
-    /**
-     * Check if configuration table is created
-     */
-    public function testCreateDatabase()
-    {
-        $configurator = $this->configurator;
-        $db           = $configurator->db();
-        $tableName    = $configurator->getTableName();
-        $tableInfo    = $db->getTableInfo($tableName);
-        $this->assertTrue(count($tableInfo) > 1);
-    }
-
-    /**
-     * Test save configuration
-     */
-    public function testSaveConfiguration()
-    {
-        $configurator  = $this->configurator;
-        $configuration = new DataItem(array(
+        $this->configurator = new Configurator($container, "hkv.db.sqlite");
+        $this->testAppConfiguration = array(
             'parentId' => null,
             'key'      => 'application',
             'value'    => array(
-                'obj' => $this->configurator,
+                'obj'   => $this->configurator,
                 'roles' => array(
                     'read'  => array('test1', 'test2'),
                     'write' => array('test1', 'test2'),
@@ -107,9 +89,30 @@ class ConfiguratorTest extends \PHPUnit_Framework_TestCase
                     )
                 )
             )
-        ));
-        $configurator->save($configuration);
-        self::$dataItem = $configuration;
+        );
+
+        parent::setUp();
+    }
+
+    /**
+     * Check if configuration table is created
+     */
+    public function testCreateDatabase()
+    {
+        $configurator = $this->configurator;
+        $db        = $configurator->db();
+        $tableName = $configurator->getStorage()->getTableName();
+        $tableInfo = $db->getTableInfo($tableName);
+        $this->assertTrue(count($tableInfo) > 1);
+    }
+
+    /**
+     * Test save configuration
+     */
+    public function testSaveConfiguration()
+    {
+        $configurator = $this->configurator;
+        self::$dataItem = $configurator->save('newApp',$this->testAppConfiguration);
     }
 
     /**
@@ -117,16 +120,14 @@ class ConfiguratorTest extends \PHPUnit_Framework_TestCase
      */
     public function testGetConfiguration()
     {
-        $configurator  = $this->configurator;
-        $configuration = self::$dataItem;
-        $id            = $configuration->getId();
-        $restored      = $configurator->getById($id);
-        $this->assertEquals($id, $restored->getId());
-        $this->assertEquals(count($restored->getChildren()), count($configuration->getChildren()));
+        $configurator = $this->configurator;
+        $restored     = $configurator->getById(self::$dataItem->getId());
+        $this->assertEquals($this->testAppConfiguration, $restored);
     }
 
     public function testSaveArray()
     {
+        /** @var HKV $dataItem */
         $configurator  = $this->configurator;
         $testKey       = 'testSaveArray';
         $testArray     = array('test'         => 'xxx',
@@ -138,9 +139,10 @@ class ConfiguratorTest extends \PHPUnit_Framework_TestCase
                                    )
                                )
         );
-        $dataItem      = $configurator->saveData($testKey, $testArray);
-        $restoredArray = $configurator->restoreData($testKey);
+        $dataItem      = $configurator->save($testKey, $testArray);
+        $restoredArray = $configurator->get($testKey);
         $this->assertEquals($testArray, $restoredArray);
         $this->assertTrue($dataItem->hasId());
     }
+
 }
