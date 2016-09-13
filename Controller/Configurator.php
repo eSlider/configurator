@@ -2,7 +2,6 @@
 namespace Mapbender\ConfiguratorBundle\Controller;
 
 /**
- *
  * @author Andriy Oblivantsev <eslider@gmail.com>
  */
 class Configurator
@@ -10,7 +9,8 @@ class Configurator
     /**
      *
      */
-    public function indexAction(){
+    public function indexAction()
+    {
 
     }
 }
