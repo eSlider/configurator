@@ -1,0 +1,1 @@
+# Mapbender configurator
