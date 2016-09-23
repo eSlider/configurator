@@ -28,6 +28,5 @@
     "psr-0": {
       "Mapbender\\ConfiguratorBundle": "."
     }
-  },
-  "target-dir": "Mapbender/ConfiguratorBundle"
+  }
 }
