@@ -1,0 +1,88 @@
+{% extends "FOMManagerBundle::manager.html.twig" %}
+
+{% block title %}Routing{% endblock %}
+
+{% block css %}
+  {{ parent() }}
+{% endblock %}
+
+{% block js %}
+  {{ parent() }}
+  <script type="text/javascript" src="{{ asset("bundles/mapbenderconfigurator/js/SymfonyAjaxManager.js") }}"></script>
+  <script type="text/javascript">
+
+    $(function() {
+      /**
+       * @type {SymfonyAjaxManager}
+       */
+      var manager = new SymfonyAjaxManager("{{ path("fom_manager_manager_index") }}routing");
+      manager.query("list").done(function(r) {
+        console.log(r);
+        var table = window.routingTable = $("<div/>").resultTable({
+          lengthChange: false,
+          searching:    true,
+          ordering:     true,
+          paging:       false,
+          selectable:   true,
+          autoWidth:    false,
+          columns:      [{
+            title: 'ID',
+            data:  'id'
+          }],
+          buttons:      [],
+          data:         []
+        });
+
+        var tableWidget = table.data('visUiJsResultTable');
+        var tableApi = table.resultTable('getApi');
+        var selectionManager;
+        tableApi.on('draw.dt', function(a, b, c) {
+          selectionManager = tableWidget.getSelection();
+          $.each(tableApi.$('tr'), function() {
+            var tr = this;
+            var rowData = tableWidget.getDataByRow(tr);
+            var $tr = $(tr);
+            var checkbox = $('td.selection input[type=checkbox]', $tr);
+
+            if(rowData.enabled) {
+              selectionManager.add(rowData);
+            }
+          });
+        });
+
+        $(tableWidget._table).delegate("tbody>tr[role='row']", 'click', function(e) {
+          var tr = $(this);
+          var data = tableApi.row(this).data();
+          data.enabled = !data.enabled;
+          // TODO: redraw cell... below doesn't work
+          // tableApi.draw({"paging": "page"});
+        });
+
+        tableApi.clear();
+        tableApi.rows.add(r.list);
+        tableApi.draw();
+
+        var managerContent = $('.content');
+        managerContent.append(table).generateElements({
+          type:  "button",
+          title: "Save",
+          click: function(e) {
+            var items = [];
+            _.each(selectionManager.list, function(item) {
+              if(!item.enabled) {
+                return;
+              }
+              items.push(item.id)
+            });
+
+            manager.query('save', {list: items}).done(function(response) {
+              console.log(response);
+            });
+
+            console.log(items);
+          }
+        });
+      });
+    });
+  </script>
+{% endblock %}
