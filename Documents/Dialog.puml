@@ -53,7 +53,7 @@
             }
         }
         ---
-      {   [<&circle-x> Cancel] | [<&circle-check> Save ]}
+      {   [<&plus> Add] |  [<&circle-x> Cancel] | [<&circle-check> Save ]}
     }
 }
 !enddefinelong
