@@ -1,16 +1,12 @@
 <?php
 namespace Mapbender\ConfiguratorBundle\Controller;
 
-use Eslider\Driver\HKVStorage;
 use FOM\ManagerBundle\Configuration\Route;
 use FOM\ManagerBundle\Configuration\Route as ManagerRoute;
 use Mapbender\ConfiguratorBundle\Component\Routing;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Method;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Template;
-use Symfony\Component\Finder\Finder;
-use Symfony\Component\Finder\SplFileInfo;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\Yaml\Yaml;
 
 /**
  * Mapbender application management
@@ -40,8 +36,6 @@ class RoutingController extends BaseController
      */
     public function listAction()
     {
-        $projectRootPath = realpath($this->get('kernel')->getRootDir()."/../");
-        echo `${projectRootPath}/bin/composer clean`;
         $routing = new Routing($this->container);
         $routes  = $routing->getAllRoutes();
         $result  = array(
@@ -58,11 +52,11 @@ class RoutingController extends BaseController
      */
     public function saveAction()
     {
-        $routing       = new Routing($this->container);
-        $request       = $this->getRequestData();
-        $allRoutes     = $routing->getAllRoutes();
-        $enabledRoutes = array();
-        $strictRoutes  = array(
+        $routing         = new Routing($this->container);
+        $request         = $this->getRequestData();
+        $allRoutes       = $routing->getAllRoutes();
+        $enabledRoutes   = array();
+        $strictRoutes    = array(
             'mapbender_start',
             'mapbender_corebundle',
             'mapbender_managerbundle',
@@ -72,6 +66,7 @@ class RoutingController extends BaseController
             'ows_corebundle',
             'mapbender_configuratorbundle'
         );
+        $projectRootPath = realpath($this->get('kernel')->getRootDir() . "/../");
 
         // Filter enabled routes
         foreach ($request["list"] as $routeId) {
@@ -84,7 +79,11 @@ class RoutingController extends BaseController
             }
         }
 
+
+
         $routing->save($enabledRoutes);
+        `${projectRootPath}/bin/composer clean`;
+
         return new JsonResponse($enabledRoutes);
     }
 }
