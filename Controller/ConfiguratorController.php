@@ -3,10 +3,9 @@ namespace Mapbender\ConfiguratorBundle\Controller;
 
 use Eslider\Driver\HKVStorage;
 use FOM\ManagerBundle\Configuration\Route;
+use FOM\ManagerBundle\Configuration\Route as ManagerRoute;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Method;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Template;
-use Symfony\Bundle\FrameworkBundle\Controller\Controller;
-use FOM\ManagerBundle\Configuration\Route as ManagerRoute;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Yaml\Yaml;
 
@@ -15,7 +14,7 @@ use Symfony\Component\Yaml\Yaml;
  *
  * @Route("configurator/")
  */
-class ConfiguratorController extends Controller
+class ConfiguratorController extends BaseController
 {
     /**
      * Renders the layer service repository.
@@ -27,7 +26,7 @@ class ConfiguratorController extends Controller
     public function indexAction($page)
     {
         return array(
-            'title' => 'Repository',
+            'title' => 'Konfigurator',
         );
     }
 
@@ -55,18 +54,4 @@ class ConfiguratorController extends Controller
         ));
     }
 
-    /**
-     * Get and optional decode JSON request data
-     *
-     * @return mixed
-     */
-    protected function getRequestData()
-    {
-        $content = $this->getRequest()->getContent();
-        $request = array_merge($_POST, $_GET);
-        if (!empty($content)) {
-            $request = array_merge($request, json_decode($content, true));
-        }
-        return $request;
-    }
 }
