@@ -20,15 +20,7 @@ class MapbenderConfiguratorBundle extends MapbenderBundle
         return array(
             array(
                 'weight' => 20,
-                'title'  => "FeatureTypes",
-                'route'  => 'mapbender_configurator_configurator_index',
-                'routes' => array(
-                    'mapbender_configurator_configurator',
-                ),
-            ),
-            array(
-                'weight' => 20,
-                'title'  => "Routing",
+                'title'  => $trans->trans("Routing"),
                 'route'  => 'mapbender_configurator_routing_index',
                 'routes' => array(
                     'mapbender_configurator_routing',

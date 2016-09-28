@@ -8,7 +8,6 @@
 
 {% block js %}
   {{ parent() }}
-  <script type="text/javascript" src="{{ asset("bundles/mapbenderconfigurator/js/SymfonyAjaxManager.js") }}"></script>
   <script type="text/javascript">
 
     $(function() {
@@ -17,7 +16,6 @@
        */
       var manager = new SymfonyAjaxManager("{{ path("fom_manager_manager_index") }}routing");
       manager.query("list").done(function(r) {
-        console.log(r);
         var table = window.routingTable = $("<div/>").resultTable({
           lengthChange: false,
           searching:    true,
@@ -76,10 +74,7 @@
             });
 
             manager.query('save', {list: items}).done(function(response) {
-              console.log(response);
             });
-
-            console.log(items);
           }
         });
       });
