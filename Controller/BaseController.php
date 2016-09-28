@@ -1,13 +1,11 @@
 <?php
 namespace Mapbender\ConfiguratorBundle\Controller;
 
-use FOM\ManagerBundle\Configuration\Route;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 
 /**
  * Mapbender application management
  *
- * @Route("configurator/")
  */
 class BaseController extends Controller
 {
