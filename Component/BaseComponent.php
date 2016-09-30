@@ -2,6 +2,7 @@
 
 namespace Mapbender\ConfiguratorBundle\Component;
 
+use Doctrine\DBAL\Connection;
 use Symfony\Component\DependencyInjection\ContainerAwareInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -44,5 +45,14 @@ class BaseComponent implements ContainerAwareInterface
     public function getContainer()
     {
         return $this->container;
+    }
+
+    /**
+     * @param $connectionName
+     * @return Connection|mixed
+     */
+    public function getConnectionByName($connectionName)
+    {
+        return $this->container->get("doctrine.dbal.{$connectionName}_connection");
     }
 }
